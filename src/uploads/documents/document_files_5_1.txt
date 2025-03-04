@@ -1,0 +1,13 @@
+library ieee;
+use ieee.std_logic_1164.all;
+entity decoder is
+port(A,B : in bit;
+     D0,D1, D2, D3 : out bit);
+end decoder;
+architecture decoderr of decoder is 
+begin
+   D0<=(not A) and (not B);
+   D1<=(not A) and B;
+   D2<=A and (not B);
+   D3<=A and B;
+end decoderr;

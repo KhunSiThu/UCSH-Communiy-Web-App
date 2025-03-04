@@ -1,0 +1,23 @@
+library ieee; 
+use ieee.std_logic_1164.all; 
+
+entity mux is 
+  port( 
+    s       : in  std_logic_vector(2 downto 0);
+    datain  : in  std_logic_vector(4 downto 0);  
+    dataout : out std_logic); 
+end mux; 
+
+architecture muxarch of mux is  
+begin 
+  process(s, datain)  
+  begin  
+    case s is   
+      when "000" => dataout <= datain(0);  
+      when "001" => dataout <= datain(1);  
+      when "010" => dataout <= datain(2);  
+      when "011" => dataout <= datain(3);  
+      when others => dataout <= datain(4);  
+    end case; 
+  end process; 
+end muxarch;
