@@ -201,6 +201,7 @@ function handleNewFeedBtnClick() {
 }
 
 function handleChatBoxBtnClick() {
+    
     chatListContainer.classList.remove("hidden");
 
     chatItems.classList.remove("hidden");

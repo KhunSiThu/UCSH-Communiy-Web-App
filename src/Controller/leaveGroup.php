@@ -10,6 +10,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $userId = $_SESSION['user_id'];
+$groupId = $_SESSION['group_id'];
 
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
     http_response_code(405);
@@ -30,7 +31,7 @@ if (!isset($data['action']) || $data['action'] !== "leave") {
 $userId = $conn->real_escape_string($userId);
 
 // Remove the user from the group
-$sql = "DELETE FROM `groupMember` WHERE memberId = '$userId'";
+$sql = "DELETE FROM `groupMember` WHERE memberId = '$userId' and groupId = '$groupId'";
 $result = mysqli_query($conn, $sql);
 
 if ($result) {

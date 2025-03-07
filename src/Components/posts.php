@@ -37,83 +37,84 @@ session_start();
 
 
 
-<!-- Notification Button -->
-<div id="notiBtn" class="relative hs-tooltip [--placement:right] inline-block">
-    <a id="dropdownUsersButton" data-dropdown-toggle="dropdownUsers" data-dropdown-placement="bottom"
-        class="hs-tooltip-toggle p-2 inline-flex justify-start items-center gap-x-2 text-sm font-semibold rounded-md border border-transparent text-gray-800 dark:text-gray-200 bg-gray-200 dark:bg-gray-700 focus:outline-none focus:bg-blue-400 focus:text-white dark:focus:bg-blue-400 disabled:opacity-50 cursor-pointer">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="md:size-6 size-4">
-            <path fill-rule="evenodd"
-                d="M5.25 9a6.75 6.75 0 0 1 13.5 0v.75c0 2.123.8 4.057 2.118 5.52a.75.75 0 0 1-.297 1.206c-1.544.57-3.16.99-4.831 1.243a3.75 3.75 0 1 1-7.48 0 24.585 24.585 0 0 1-4.831-1.244.75.75 0 0 1-.298-1.205A8.217 8.217 0 0 0 5.25 9.75V9Zm4.502 8.9a2.25 2.25 0 1 0 4.496 0 25.057 25.057 0 0 1-4.496 0Z"
-                clip-rule="evenodd" />
-        </svg>
-        <div id="notiCount"
-            class="absolute inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full -top-2 -end-1.5 dark:border-gray-900 hidden">
-            0
-        </div>
-    </a>
+    <!-- Notification Button -->
+    <div id="notiBtn" class="relative hs-tooltip [--placement:right] inline-block">
+        <a id="dropdownUsersButton" data-dropdown-toggle="dropdownUsers" data-dropdown-placement="bottom"
+            class="hs-tooltip-toggle p-2 inline-flex justify-start items-center gap-x-2 text-xl font-semibold rounded-md border border-transparent text-gray-800 dark:text-gray-200 bg-gray-200 dark:bg-gray-700 focus:outline-none focus:bg-blue-400 focus:text-white dark:focus:bg-blue-400 disabled:opacity-50 cursor-pointer">
+            <i id="notiIcon" class="fa-solid fa-bell"></i>
+            <div id="notiCount"
+                class="absolute inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full -top-2 -end-1.5 dark:border-gray-900 hidden">
+                0
+            </div>
+        </a>
 
-    <!-- Dropdown Menu -->
-    <div id="dropdownUsers"
-        class="z-10 hidden bg-white rounded-lg shadow-lg w-72 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-        
-        <!-- Header -->
-        <div class="flex justify-between items-center px-4 py-3 border-b dark:border-gray-600">
-            <h2 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Notifications</h2>
-        </div>
+        <!-- Dropdown Menu -->
+        <div id="dropdownUsers"
+            class="z-10 hidden bg-white rounded-lg shadow-lg w-72 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
 
-        <!-- Likes Section -->
-        <div class="p-3">
-            <h3 class="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">Likes on Your Posts</h3>
-            <ul id="likesList" class="max-h-40 overflow-y-auto">
-                <li class="text-gray-500 text-sm italic">No likes yet.</li>
-            </ul>
+            <!-- Header -->
+            <div class="flex justify-between items-center px-4 py-3 border-b dark:border-gray-600">
+                <h2 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Notifications</h2>
+            </div>
+
+            <!-- Likes Section -->
+            <div class="p-3">
+                <h3 class="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">Likes on Your Posts</h3>
+                <ul id="likesList" class="max-h-40 overflow-y-auto">
+                    <li class="text-gray-500 text-sm italic">No likes yet.</li>
+                </ul>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- JavaScript -->
-<script>
+    <!-- JavaScript -->
+    <script>
+        document.getElementById('dropdownUsersButton').addEventListener('click', async function(event) {
+            event.preventDefault();
+            document.getElementById('dropdownUsers').classList.toggle('hidden');
+            let likeCounts = await fetchUserLikes();
+            sessionStorage.setItem("likeCounts", likeCounts);
+        });
 
-document.getElementById('dropdownUsersButton').addEventListener('click', async function (event) {
-    event.preventDefault();
-    document.getElementById('dropdownUsers').classList.toggle('hidden');
-    let likeCounts = await fetchUserLikes();
-    sessionStorage.setItem("likeCounts",likeCounts);
-});
-
-function updateNotificationCount(count) {
-    const notiCountElement = document.getElementById('notiCount');
-    notiCountElement.textContent = count;
-    notiCountElement.classList.toggle('hidden', count === 0);
-}
-
-async function fetchUserLikes() {
-    try {
-        const response = await fetch('../Controller/getUserPostLikes.php');
-        const data = await response.json();
-        
-        const likesList = document.getElementById('likesList');
-        likesList.innerHTML = ''; 
-
-        if (data.error) {
-            likesList.innerHTML = `<li class="text-red-500 text-sm italic">${data.error}</li>`;
-            updateNotificationCount(0);
-            return;
+        function updateNotificationCount(count) {
+            const notiCountElement = document.getElementById('notiCount');
+            notiCountElement.textContent = count;
+            notiCountElement.classList.toggle('hidden', count === 0);
         }
 
-        if (data.length === 0) {
-            likesList.innerHTML = '<li class="text-gray-500 text-sm italic">No likes yet.</li>';
-        } else {
-            data.forEach(user => {
-                // Convert timestamp to readable format
-                const formattedDate = user.createdAt 
-                    ? new Intl.DateTimeFormat('en-US', { 
-                        year: 'numeric', month: 'short', day: 'numeric', 
-                        hour: '2-digit', minute: '2-digit', hour12: true 
-                    }).format(new Date(user.createdAt)) 
-                    : 'Unknown Date';
+        let j = 0;
 
-                likesList.innerHTML += `
+        async function fetchUserLikes() {
+            try {
+                const response = await fetch('../Controller/getUserPostLikes.php');
+                const data = await response.json();
+
+                const likesList = document.getElementById('likesList');
+                likesList.innerHTML = '';
+
+                if (data.error) {
+                    likesList.innerHTML = `<li class="text-red-500 text-sm italic">${data.error}</li>`;
+                    updateNotificationCount(0);
+                    return;
+                }
+
+                if (data.length === 0) {
+                    likesList.innerHTML = '<li class="text-gray-500 text-sm italic">No likes yet.</li>';
+                } else {
+                    data.forEach(user => {
+                        // Convert timestamp to readable format
+                        const formattedDate = user.createdAt ?
+                            new Intl.DateTimeFormat('en-US', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: true
+                            }).format(new Date(user.createdAt)) :
+                            'Unknown Date';
+
+                        likesList.innerHTML += `
                     <li>
                         <a href="#Post${user.post_id}" class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
                             <img class="w-8 h-8 rounded-full" src="../uploads/profiles/${user.profileImage || 'default.png'}" alt="${user.name}">
@@ -125,29 +126,52 @@ async function fetchUserLikes() {
                         </a>
                     </li>
                 `;
-            });
+                    });
+                }
+
+                async function playNotificationSound() {
+                    const sound = document.getElementById("notificationSound");
+                    try {
+                        await sound.play();
+
+                        // Show the custom alert
+                        const notiIcon = document.getElementById("notiIcon");
+                        notiIcon.classList.add("fa-shake");
+
+                        // Hide alert after 5 seconds
+                        setTimeout(() => {
+                            notiIcon.classList.remove("fa-shake");
+                        }, 4000);
+
+                    } catch (error) {
+                        console.error("Error playing notification sound:", error);
+                    }
+                }
+
+                let likeCounts = sessionStorage.getItem("likeCounts");
+
+                if (likeCounts < data.length) {
+                    let likes = data.length - likeCounts;
+                    updateNotificationCount(likes);
+
+                    if (userInteracted && data.length > j) {
+                        await playNotificationSound();
+                        j = data.length;
+                    }
+                } else {
+                    updateNotificationCount(0);
+                }
+
+                return data.length;
+
+            } catch (error) {
+                console.error('Error fetching likes:', error);
+            }
         }
 
-        let likeCounts = sessionStorage.getItem("likeCounts");
-
-        if(likeCounts < data.length) {
-            let likes = data.length - likeCounts;
-            updateNotificationCount(likes);
-        } else {
-            updateNotificationCount(0);
-        }
-
-        return data.length;
-
-    } catch (error) {
-        console.error('Error fetching likes:', error);
-    }
-}
-
-// Fetch likes initially when the page loads
-setInterval(fetchUserLikes,500);
-
-</script>
+        // Fetch likes initially when the page loads
+        setInterval(fetchUserLikes, 500);
+    </script>
 
 
 </div>

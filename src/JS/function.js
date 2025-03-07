@@ -314,6 +314,9 @@ document.addEventListener('DOMContentLoaded', () => {
     scrollToBottom(messageShowCon);
 });
 
+
+
+
 // Hero Section
 const chatFriend = async (chooseId) => {
 
@@ -508,6 +511,9 @@ const chatFriend = async (chooseId) => {
                     // Display each message
                     data.messages.forEach(displayMessage);
 
+                    let messageCount = await getMessageCount();
+                    sessionStorage.setItem("messCounts", messageCount);
+
                     // Delete Message
 
                     const yourMessage = document.querySelectorAll(".yourMessage");
@@ -547,7 +553,7 @@ const chatFriend = async (chooseId) => {
 
                     // Scroll to the bottom if new messages are added
                     if (messLength != data.messages.length) {
-                        
+
                         scrollToBottom(messageShowCon);
                         sessionStorage.setItem("messLength", data.messages.length);
                     }
@@ -734,7 +740,7 @@ const groupChat = async (chooseId) => {
                                 <span>Add Member</span>
                             </button>
                         </li>
-                        <li class="${group.adminId != userId ? 'block' : 'hidden' } ">
+                        <li class="${group.adminId != userId ? 'block' : 'hidden'} ">
                             <button id="openLeaveGroupModal" class="hover:bg-gray-200 dark:hover:bg-gray-800">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
@@ -743,7 +749,7 @@ const groupChat = async (chooseId) => {
                             </button>
                         </li>
                         <li class="${group.adminId === userId ? 'block' : 'hidden'} ">
-                            <button id="" class="hover:bg-gray-200 dark:hover:bg-gray-800">
+                            <button id="openDeleteGroupModal" class="hover:bg-gray-200 dark:hover:bg-gray-800">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
                                 </svg>
@@ -850,65 +856,102 @@ const groupChat = async (chooseId) => {
                 }
             });
 
-            // Get the modal element
-            const leaveGroupModal = document.getElementById('leaveGroupModal');
+            // Get the modal elements
+            const leaveGroupModal = document.getElementById("leaveGroupModal");
+            const deleteGroupModal = document.getElementById("deleteGroupModal");
 
             // Get the buttons to open and close the modal
-            const openModalButton = document.getElementById('openLeaveGroupModal'); // Add this button in your HTML
-            const closeModalButton = leaveGroupModal.querySelector('#sureLeave');
-            const cancelButton = leaveGroupModal.querySelector('#cancelLeave'); // "No, cancel" button
-            const confirmButton = leaveGroupModal.querySelector('.bg-red-600'); // "Yes, I'm sure" button
+            const openLeaveModalButton = document.getElementById("openLeaveGroupModal");
+            const openDeleteModalButton = document.getElementById("openDeleteGroupModal");
+            const closeLeaveModalButton = document.getElementById("closeLeaveModalButton");
+            const confirmLeaveButton = document.getElementById("sureLeave");
+            const closeDeleteModalButton = document.getElementById("closeDeleteModalButton");
+            const confirmDeleteButton = document.getElementById("sureDelete");
+            const cancelLeaveButton = document.getElementById("cancelLeave");
+            const cancelDeleteButton = document.getElementById("cancelDelete");
 
-            // Function to open the modal
-            function openModal() {
-                leaveGroupModal.classList.remove('hidden');
-                leaveGroupModal.classList.add('flex');
+            // Function to open a modal
+            function openModal(modal) {
+                if (modal) {
+                    modal.classList.remove("hidden");
+                    modal.classList.add("flex");
+                }
             }
 
-            // Function to close the modal
-            function closeModal() {
-                leaveGroupModal.classList.remove('flex');
-                leaveGroupModal.classList.add('hidden');
+            // Function to close a modal
+            function closeModal(modal) {
+                if (modal) {
+                    modal.classList.remove("flex");
+                    modal.classList.add("hidden");
+                }
             }
 
-            // Event listener to open the modal
-            if (openModalButton) {
-                openModalButton.addEventListener('click', openModal);
+            // Event listeners for opening modals
+            if (openLeaveModalButton) {
+                openLeaveModalButton.addEventListener("click", () => openModal(leaveGroupModal));
             }
 
-            // Event listener to close the modal when clicking the close button
-            if (closeModalButton) {
-                closeModalButton.addEventListener('click', closeModal);
+            if (openDeleteModalButton) {
+                openDeleteModalButton.addEventListener("click", () => openModal(deleteGroupModal));
             }
 
-            if (cancelButton) {
-                cancelButton.addEventListener('click', closeModal);
-            }
+            // Event listeners for closing modals
+            [closeLeaveModalButton, cancelLeaveButton].forEach(button => {
+                if (button) button.addEventListener("click", () => closeModal(leaveGroupModal));
+            });
 
-            if (confirmButton) {
-                confirmButton.addEventListener("click", () => {
+            [closeDeleteModalButton, cancelDeleteButton].forEach(button => {
+                if (button) button.addEventListener("click", () => closeModal(deleteGroupModal));
+            });
+
+            // Confirm leave group event
+            if (confirmLeaveButton) {
+                confirmLeaveButton.addEventListener("click", () => {
                     fetch("../Controller/leaveGroup.php", {
                         method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({ action: "leave" }),
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ action: "leave" })
                     })
-                        .then((response) => response.json())
-                        .then((data) => {
+                        .then(response => response.json())
+                        .then(data => {
                             if (data.success) {
-                                showCustomAlert("You have left the group.");
-                                closeModal(); // Close the modal after confirmation
+                                document.querySelector("#chatRoomCon").classList.add("hidden");
+                                closeModal(leaveGroupModal);
                             } else {
                                 alert("Failed to leave the group: " + data.error);
                             }
                         })
-                        .catch((error) => {
+                        .catch(error => {
                             console.error("Error leaving group:", error);
                             alert("An error occurred while leaving the group.");
                         });
                 });
             }
+
+            // Confirm delete group event
+            if (confirmDeleteButton) {
+                confirmDeleteButton.addEventListener("click", () => {
+                    fetch("../Controller/deleteGroup.php", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ action: "delete" })
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                document.querySelector("#chatRoomCon").classList.add("hidden");
+                                closeModal(deleteGroupModal);
+                            } else {
+                                alert("Failed to delete the group: " + data.error);
+                            }
+                        })
+                        .catch(error => {
+                            console.error("Error deleting group:", error);
+                            alert("An error occurred while deleting the group.");
+                        });
+                });
+            }
+
 
 
             window.addEventListener('click', (event) => {
@@ -1189,6 +1232,11 @@ function saveImage(imageSrc) {
 }
 
 async function sendMessage() {
+
+
+    let messageCount = await getMessageCount();
+    sessionStorage.setItem("messCounts", messageCount);
+
     const messageInput = document.getElementById("sendMessage");
     const fileInputs = {
         images: document.getElementById("sendImage"),
