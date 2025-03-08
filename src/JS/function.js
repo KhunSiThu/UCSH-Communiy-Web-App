@@ -1077,9 +1077,11 @@ const groupChat = async (chooseId) => {
                     // Track the number of messages in session storage
                     let messLength = sessionStorage.getItem("messLength");
 
+                    let messageCount = await getGroupMessageCount();
+                    sessionStorage.setItem("groupMessCounts", messageCount);
+
                     // Clear the message container
                     messageShowCon.innerHTML = "";
-
 
                     // Delete Message
 
@@ -1316,10 +1318,12 @@ async function sendMessage() {
     }
 }
 
-
-
 // Function to send a message
 async function groupSendMessage() {
+
+    let messageCount = await getGroupMessageCount();
+    sessionStorage.setItem("groupMessCounts", messageCount);
+
     const messageInput = document.getElementById("sendMessage");
     const fileInputs = {
         images: document.getElementById("sendImage"),
@@ -1470,7 +1474,7 @@ function createImageGallery(images) {
         <div class="grid grid-cols-${Math.min(images.length, 2)} gap-1 mt-3 relative">
             ${images.slice(0, 4).map((photo, index) => `
                 <a href="javascript:void(0);" data-images='${JSON.stringify(images)}' data-index='${index}' class="gallery-trigger relative">
-                    <img src="../posts/images/${photo}" class="w-full object-cover rounded-lg ${images.length === 1 ? 'md:h-[600px] h-[220px]' : 'md:h-80 h-32 '} ${index === 3 && images.length > 4 ? 'opacity-50' : ''}" />
+                    <img src="../posts/images/${photo}" class="w-full object-cover ${images.length === 1 ? 'md:h-[600px] h-[220px]' : 'md:h-80 h-32 '} ${index === 3 && images.length > 4 ? 'opacity-50' : ''}" />
                     ${index === 3 && images.length > 4 ? `
                         <div class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 text-white text-2xl font-bold">
                             +${images.length - 4}
