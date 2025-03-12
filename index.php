@@ -41,7 +41,7 @@
         });
 
         document.getElementById('admin-btn').addEventListener('click', () => {
-            alert('You selected Admin');
+            window.location.href = "./src/admin/login.php";
         });
     </script>
 </body>

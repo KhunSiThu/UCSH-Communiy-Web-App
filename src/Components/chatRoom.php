@@ -80,7 +80,6 @@
         </button>
     </section>
 
-
     <div id="messDropdown" class="z-10 w-full h-screen flex  hidden justify-center items-center absolute top-0 divide-y divide-gray-100 dark:divide-gray-600 bg-black/50 bg-blur">
         <ul class="py-2 w-36 text-sm bg-slate-100 dark:bg-slate-500 text-gray-700 dark:text-gray-200  rounded-lg shadow-sm ">
             <li id="deleteMessageBtn" class="px-4 py-2 mx-2 rounded-lg flex justify-between  text-white hover:bg-gray-200 dark:hover:bg-gray-600 dark:hover:text-red-500">
@@ -90,7 +89,6 @@
 
         </ul>
     </div>
-
 
     <!-- Modal -->
 

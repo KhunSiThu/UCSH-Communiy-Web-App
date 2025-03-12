@@ -1,7 +1,3 @@
-<?php
-session_start();
-// $conn = mysqli_connect("localhost", "root", "", "chattingdb");
-?>
 <!-- Updated Sticky Header -->
 <div class="w-full flex items-center justify-between sticky top-0 left-0 z-40 md:h-20 h-16 bg-slate-100/90 dark:bg-slate-950/90 shadow-lg md:px-6 px-2 py-4 backdrop-blur-md">
     <!-- Sidebar Toggle Button -->
@@ -57,11 +53,18 @@ session_start();
                 <h2 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Notifications</h2>
             </div>
 
-            <!-- Likes Section -->
+            <!-- Notifications Section -->
             <div class="p-3">
-                <h3 class="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">Likes on Your Posts</h3>
+                <!-- Likes on Your Posts -->
+                <h3 class="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">Recent Activity on Your Posts</h3>
                 <ul id="likesList" class="max-h-40 overflow-y-auto">
-                    <li class="text-gray-500 text-sm italic">No likes yet.</li>
+                    <li class="text-gray-500 text-sm italic">Your posts haven't received any likes yet. Keep sharing great content!</li>
+                </ul>
+
+                <!-- Admin Deleted Your Posts -->
+                <h3 class="text-xs font-semibold text-gray-600 dark:text-gray-400 my-2">Post Moderation</h3>
+                <ul id="deletedPostList" class="max-h-40 overflow-y-auto">
+                    <li class="text-gray-500 text-sm italic">No posts have been removed by the admin. Keep following the guidelines!</li>
                 </ul>
             </div>
         </div>
@@ -72,8 +75,8 @@ session_start();
         document.getElementById('dropdownUsersButton').addEventListener('click', async function(event) {
             event.preventDefault();
             document.getElementById('dropdownUsers').classList.toggle('hidden');
-            let likeCounts = await fetchUserLikes();
-            sessionStorage.setItem("likeCounts", likeCounts);
+            let notiCounts = await fetchUserNotis();
+            sessionStorage.setItem("notiCounts", notiCounts);
         });
 
         function updateNotificationCount(count) {
@@ -84,10 +87,67 @@ session_start();
 
         let j = 0;
 
-        async function fetchUserLikes() {
+        async function fetchUserNotis() {
             try {
                 const response = await fetch('../Controller/getUserPostLikes.php');
                 const data = await response.json();
+
+                const response1 = await fetch('../Controller/getAdminDeletedPost.php');
+                const data1 = await response1.json();
+
+                const deletedPostList = document.getElementById('deletedPostList');
+                deletedPostList.innerHTML = '';
+
+                if (data1.error) {
+                    deletedPostList.innerHTML = `<li class="text-red-500 text-sm italic">${data1.error}</li>`;
+                    updateNotificationCount(0);
+                    return;
+                }
+
+                if (data1.length === 0) {
+                    deletedPostList.innerHTML = '<li class="text-gray-500 text-sm italic">No delete Posts yet.</li>';
+                } else {
+                    data1.forEach(user => {
+                        // Convert timestamp to readable format
+                        const formattedDate = user.deleted_at ?
+                            new Intl.DateTimeFormat('en-US', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: true
+                            }).format(new Date(user.deleted_at)) :
+                            'Unknown Date';
+
+                            deletedPostList.innerHTML += `
+                            <li>
+                                <a href="#Post${user.post_id}" class="px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 block">
+                                    <!-- Admin Info -->
+                                    <div class="text-sm text-gray-700 dark:text-gray-200 flex items-center gap-2">
+                                        <div class="flex items-center gap-2">
+                                            <img class="w-8 h-8 rounded-full border border-blue-300" 
+                                                src="https://cdn-icons-png.flaticon.com/512/4201/4201973.png" 
+                                                alt="${user.name}">
+                                            <h3 class="font-medium">Admin</h3>
+                                        </div>
+                                        <time class="text-xs text-gray-500">${formattedDate}</time>
+                                    </div>
+
+                                    <!-- Reason for Deletion -->
+                                    <div class="mt-1">
+                                        <p class="text-sm text-gray-600 dark:text-gray-300">
+                                            <span class="font-semibold">Reason:</span> ${user.reason}
+                                        </p>
+                                    </div>
+                                </a>
+                            </li>
+                        `;
+                    });
+                }
+
+
+
 
                 const likesList = document.getElementById('likesList');
                 likesList.innerHTML = '';
@@ -122,7 +182,7 @@ session_start();
                             <h3>${user.name}</h3>
                             <time class="text-xs text-gray-500 so-small">${formattedDate}</time>
                             </div>
-                            
+
                         </a>
                     </li>
                 `;
@@ -148,21 +208,23 @@ session_start();
                     }
                 }
 
-                let likeCounts = sessionStorage.getItem("likeCounts");
+                let notiCounts = sessionStorage.getItem("notiCounts");
 
-                if (likeCounts < data.length) {
-                    let likes = data.length - likeCounts;
+                let totalLength = data.length + data1.length;
+
+                if (notiCounts < totalLength) {
+                    let likes = totalLength - notiCounts;
                     updateNotificationCount(likes);
 
-                    if (userInteracted && data.length > j) {
+                    if (userInteracted && totalLength > j) {
                         await playNotificationSound();
-                        j = data.length;
+                        j = totalLength;
                     }
                 } else {
                     updateNotificationCount(0);
                 }
 
-                return data.length;
+                return totalLength;
 
             } catch (error) {
                 console.error('Error fetching likes:', error);
@@ -170,7 +232,7 @@ session_start();
         }
 
         // Fetch likes initially when the page loads
-        setInterval(fetchUserLikes, 500);
+        setInterval(fetchUserNotis, 500);
     </script>
 
 
@@ -296,99 +358,7 @@ session_start();
 
     <!-- Profile Info Section -->
     <div id="friendInfoCon" class="relative md:flex-row flex flex-col items-center bg-slate-100 dark:bg-gray-800 w-full">
-        <div class="p-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between w-full items-center">
-            <!-- Profile Picture and Details -->
-            <div class="flex flex-col sm:flex-row items-center justify-center ">
-                <div class="relative -top-16 md:-top-20">
-                    <button onclick="showProfileImageChangeModal()" class="w-12 h-12 flex justify-center items-center text-white rounded-full bg-black/95 absolute right-0 bottom-4">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6">
-                            <path d="M12 9a3.75 3.75 0 1 0 0 7.5A3.75 3.75 0 0 0 12 9Z" />
-                            <path fill-rule="evenodd" d="M9.344 3.071a49.52 49.52 0 0 1 5.312 0c.967.052 1.83.585 2.332 1.39l.821 1.317c.24.383.645.643 1.11.71.386.054.77.113 1.152.177 1.432.239 2.429 1.493 2.429 2.909V18a3 3 0 0 1-3 3h-15a3 3 0 0 1-3-3V9.574c0-1.416.997-2.67 2.429-2.909.382-.064.766-.123 1.151-.178a1.56 1.56 0 0 0 1.11-.71l.822-1.315a2.942 2.942 0 0 1 2.332-1.39ZM6.75 12.75a5.25 5.25 0 1 1 10.5 0 5.25 5.25 0 0 1-10.5 0Zm12-1.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" clip-rule="evenodd" />
-                        </svg>
-                    </button>
-                    <img alt="Profile" src="../uploads/profiles/<?= $userData['profileImage'] ?>" class="border-2 p-1 border-blue-400 bg-black/40  h-36 w-36 md:h-48 md:w-48 rounded-full object-cover">
-                </div>
-                <div class="relative ml-1 sm:ml-6 lg:ml-10  flex flex-col justify-center">
-                    <h3 class="text-xl sm:text-2xl text-center md:text-start  lg:text-3xl font-semibold text-gray-700 dark:text-gray-300">
-                        <?= $userData['name'] ?>
-                        <small class="text-xs opacity-80">
-                            <?php
-                            if ($userData['role']) {
-                                echo "(" . $userData['role'] . ")";
-                            }
 
-                            ?>
-                        </small>
-                    </h3>
-                    <span class="text-xs text-center md:text-start opacity-40"><?= $userData['email'] ?></span>
-                    <ul class="text-sm mt-3 opacity-90">
-                        <?php if ($userData['year']) { ?>
-                            <li class="flex items-center space-x-1">
-                                <span>Year : <b><?= $userData['year'] ?> Year</b></span>
-                            </li>
-                        <?php } ?>
-                        <?php if ($userData['rollNo']) { ?>
-                            <li class="flex items-center space-x-1 mt-2">
-                                <span>Roll No : <b><?= $userData['rollNo'] ?></b></span>
-                            </li>
-                        <?php } ?>
-                        <?php if ($userData['address']) { ?>
-                            <li class="flex items-center space-x-1 mt-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
-                                </svg>
-                                <span><?= $userData['address'] ?> City</span>
-                            </li>
-                        <?php } ?>
-                        <?php if ($userData['phoneNo']) { ?>
-                            <li class="flex items-center space-x-1 mt-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" />
-                                </svg>
-                                <span><?= $userData['phoneNo'] ?></span>
-                            </li>
-                        <?php } ?>
-                    </ul>
-
-                    <button id="editUserInfoBtn" onclick="showEditUserInfo()" type="button" class="inline-flex mt-4 underline items-center gap-x-2 text-sm font-semibold rounded-lg focus:outline-none text-blue-500 focus:text-blue-700 disabled:opacity-50 disabled:pointer-events-none ">
-                        Edit Info
-                    </button>
-
-                </div>
-            </div>
-
-            <!-- Stats Section -->
-            <div class="flex justify-between items-center mt-6 sm:mt-0">
-                <ul>
-
-
-                </ul>
-                <ul class="text-sm mt-3 opacity-90">
-                    <li class="flex items-center space-x-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm0 0v-3.675A55.378 55.378 0 0 1 12 8.443m-7.007 11.55A5.981 5.981 0 0 0 6.75 15.75v-1.5" />
-                        </svg>
-                        <span>University Of Computer Studies ( Hpa-An )</span>
-                    </li>
-                    <li class="flex items-center space-x-1 mt-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
-                        </svg>
-                        <span>Kayin State, Hpa-An City</span>
-                    </li>
-                </ul>
-            </div>
-        </div>
-
-        <!-- Edit Profile Button -->
-        <button id="addCoverBtn" onclick="showCoverImageChangeModal()" class="flex items-center justify-center bg-blue-500 absolute -top-12 right-3 uppercase text-white font-bold hover:shadow-md shadow text-xs md:px-4 px-2 py-2 rounded outline-none focus:outline-none mb-1 ease-linear transition-all duration-150" type="button">
-            Add Cover
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-4 ml-1">
-                <path fill-rule="evenodd" d="M1.5 6a2.25 2.25 0 0 1 2.25-2.25h16.5A2.25 2.25 0 0 1 22.5 6v12a2.25 2.25 0 0 1-2.25 2.25H3.75A2.25 2.25 0 0 1 1.5 18V6ZM3 16.06V18c0 .414.336.75.75.75h16.5A.75.75 0 0 0 21 18v-1.94l-2.69-2.689a1.5 1.5 0 0 0-2.12 0l-.88.879.97.97a.75.75 0 1 1-1.06 1.06l-5.16-5.159a1.5 1.5 0 0 0-2.12 0L3 16.061Zm10.125-7.81a1.125 1.125 0 1 1 2.25 0 1.125 1.125 0 0 1-2.25 0Z" clip-rule="evenodd" />
-            </svg>
-
-        </button>
 
     </div>
 
